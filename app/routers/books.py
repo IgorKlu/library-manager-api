@@ -17,7 +17,7 @@ router = APIRouter(prefix="/books", tags=["books"])
 def get_books():
     return library.list_books()
 
-@router.post("/", response_model=BookResponse)
+@router.post("/", response_model=BookResponse, status_code=201)
 def add_book(book_data: BookCreate):
     try:
         return library.create_book(book_data.title, book_data.author)
