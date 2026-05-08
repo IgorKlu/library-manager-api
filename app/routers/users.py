@@ -8,6 +8,8 @@ from app.exceptions import (
     UserNotFoundError,
     BookNotFoundError,
     BookIsBorrowedError,
+    BookNotBorrowedError,
+    UserDoesNotHaveBookError,
 )
 
 from app.schemas.book_schema import BorrowBookRequest, BookResponse
@@ -44,3 +46,16 @@ def get_user_books(user_id: int):
         return library.list_user_books(user_id)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
+
+@router.delete("/{user_id}/borrowed-books", response_model=BookResponse)
+def return_borrowed_book(user_id: int, book_data: BorrowBookRequest):
+    try:
+        return library.return_book(user_id, book_data.title)
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="User not found")
+    except BookNotBorrowedError:
+        raise HTTPException(status_code=409, detail="Book not borrowed")
+    except UserDoesNotHaveBookError:
+        raise HTTPException(status_code=409, detail="User does not have this book")
