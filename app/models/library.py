@@ -1,5 +1,6 @@
 from app.models.book import Book
 from app.models.user import User
+from app.utils.id_generator import generate_id
 from app.exceptions import (
     BookAlreadyExistsError,
     BookIsBorrowedError,
@@ -16,12 +17,19 @@ class Library:
         self.books: list[Book] = []
         self.users: list[User] = []
 
-    def _generate_user_id(self) -> int:
-        if not self.users:
-            return 1
+    def _generate_user_id(self) -> str:
+        while True:
+            user_id = generate_id()
 
-        return max(user.id for user in self.users) + 1
+            if self.find_user_by_id(user_id) is None:
+                return user_id
 
+    def _generate_book_id(self) -> str:
+        while True:
+            book_id = generate_id()
+
+            if self.find_book_by_id(book_id) is None:
+                return book_id
 
     def add_book(self, book: Book) -> None:
         if self.find_book(book.title) is not None:
@@ -42,18 +50,25 @@ class Library:
 
         return None
 
-    def find_user_by_id(self, user_id: int) -> User | None:
+    def find_user_by_id(self, user_id: str) -> User | None:
         for user in self.users:
             if user.id == user_id:
                 return user
 
         return None
 
+    def find_book_by_id(self, book_id) -> Book | None:
+        for book in self.books:
+            if book.id == book_id:
+                return book
+
+        return None
+
     def find_users_by_name(self, user_name: str) -> list[User]:
         return [user for user in self.users if user.name == user_name]
 
-    def borrow_book(self, user_id: int, title: str) -> Book:
-        book = self.find_book(title)
+    def borrow_book(self, user_id: str, book_id: str) -> Book:
+        book = self.find_book_by_id(book_id)
         user = self.find_user_by_id(user_id)
 
         if book is None:
@@ -70,8 +85,8 @@ class Library:
 
         return book
 
-    def return_book(self, user_id: int, title: str) -> Book:
-        book = self.find_book(title)
+    def return_book(self, user_id: str, book_id: str) -> Book:
+        book = self.find_book_by_id(book_id)
         user = self.find_user_by_id(user_id)
 
         if book is None:
@@ -110,7 +125,7 @@ class Library:
     def list_users(self) -> list[User]:
         return self.users.copy()
 
-    def list_user_books(self, user_id: int) -> list[Book]:
+    def list_user_books(self, user_id: str) -> list[Book]:
         user = self.find_user_by_id(user_id)
 
         if user is None:
@@ -127,7 +142,8 @@ class Library:
         return user
 
     def create_book(self, title: str, author: str) -> Book:
-        book = Book(title, author)
+        book_id = self._generate_book_id()
+        book = Book(book_id, title, author)
 
         self.add_book(book)
 

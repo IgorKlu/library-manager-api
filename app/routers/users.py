@@ -29,9 +29,9 @@ def add_user(user_data: UserCreate):
 
 
 @router.post("/{user_id}/borrowed-books", response_model=BookResponse)
-def book_borrow(user_id: int, book_data: BorrowBookRequest):
+def book_borrow(user_id: str, book_data: BorrowBookRequest):
     try:
-        return library.borrow_book(user_id, book_data.title)
+        return library.borrow_book(user_id, book_data.id)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
     except UserNotFoundError:
@@ -41,16 +41,16 @@ def book_borrow(user_id: int, book_data: BorrowBookRequest):
 
 
 @router.get("/{user_id}/books", response_model=list[BookResponse])
-def get_user_books(user_id: int):
+def get_user_books(user_id: str):
     try:
         return library.list_user_books(user_id)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
 
 @router.delete("/{user_id}/borrowed-books", response_model=BookResponse)
-def return_borrowed_book(user_id: int, book_data: BorrowBookRequest):
+def return_borrowed_book(user_id: str, book_data: BorrowBookRequest):
     try:
-        return library.return_book(user_id, book_data.title)
+        return library.return_book(user_id, book_data.id)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
     except UserNotFoundError:

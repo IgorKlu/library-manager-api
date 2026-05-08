@@ -6,12 +6,14 @@ class BookCreate(BaseModel):
 
 
 class BookResponse(BaseModel):
+    id: str
     title: str = Field(min_length=1, max_length=1000)
     author: str = Field(min_length=1, max_length=1000)
     is_borrowed: bool
 
 class BorrowBookRequest(BaseModel):
-    title: str = Field(min_length=2, max_length=1000)
+    id: str = Field(min_length=1)
+
 
 class BookDeleteRequest(BaseModel):
-    title: str = Field(min_length=2, max_length=1000)
+    id: str = Field(min_length=1)

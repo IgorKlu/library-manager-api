@@ -2,11 +2,11 @@ from app.models.book import Book
 
 
 class User:
-    def __init__(self,  user_id: int, name: str) -> None:
-        self.id = user_id
+    def __init__(self,  user_id: str, name: str) -> None:
+        self.id: str = user_id
         self.name = name
         self.borrowed_books: list[Book] = []
 
     def __repr__(self):
-        return f"User(id={self.id}, name={self.name!r})"
+        return f"User(id={self.id!r}, name={self.name!r})"
 
