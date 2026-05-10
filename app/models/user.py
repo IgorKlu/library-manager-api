@@ -5,7 +5,7 @@ class User:
     def __init__(self,  user_id: str, name: str) -> None:
         self.id: str = user_id
         self.name = name
-        self.borrowed_books: list[Book] = []
+        self.borrowed_copy_ids: list[str] = []
 
     def __repr__(self):
         return f"User(id={self.id!r}, name={self.name!r})"

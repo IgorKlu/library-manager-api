@@ -25,3 +25,11 @@ class BookAlreadyExistsError(Exception):
 class UserAlreadyExistsError(Exception):
     pass
 
+class BookCopyAlreadyExistsError(Exception):
+    pass
+
+class NoAvailableCopyError(Exception):
+    pass
+
+class BookCopyNotFoundError(Exception):
+    pass
