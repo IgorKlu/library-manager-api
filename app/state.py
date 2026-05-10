@@ -1,3 +1,3 @@
-from app.models.library import Library
+from app.services.library_service import Library
 
 library = Library()
