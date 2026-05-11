@@ -8,10 +8,10 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    name: str = Field(min_length=1, max_length=1000)
+    name: str
 
 
-class UserWithBooksResponse(BaseModel):
+class UserWithBorrowedCopiesResponse(BaseModel):
     id: str
-    name: str = Field(min_length=1, max_length=1000)
-    borrowed_books: list[BookResponse]
+    name: str
+    borrowed_copy_ids: list[str]
