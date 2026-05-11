@@ -3,3 +3,6 @@ pydantic
 uvicorn
 uuid6
 pytest
+sqlalchemy
+psycopg[binary]==3.3.4
+python-dotenv

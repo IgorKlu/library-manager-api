@@ -45,4 +45,3 @@ def delete_book(book_id: str):
 
     except BookIsBorrowedError:
         raise HTTPException(status_code=409, detail="Book is borrowed")
-
