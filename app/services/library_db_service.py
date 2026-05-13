@@ -9,7 +9,10 @@ from app.db_models.book_copy_model import BookCopyModel
 
 from app.exceptions import (
     UserAlreadyExistsError,
-    BookAlreadyExistsError
+    BookAlreadyExistsError,
+    BookNotFoundError,
+    UserNotFoundError,
+
 )
 from app.utils.id_generator import generate_id
 
@@ -83,3 +86,19 @@ class LibraryDBService:
     def list_users(self, db: Session) -> list[UserModel]:
         statement = select(UserModel)
         return list(db.scalars(statement).all())
+
+    def get_book_by_id(self, db: Session, book_id: str) -> BookModel:
+        book = db.get(BookModel, book_id)
+
+        if book is None:
+            raise BookNotFoundError("Book not found")
+
+        return book
+
+    def get_user_by_id(self, db: Session, user_id: str) -> UserModel:
+        user = db.get(UserModel, user_id)
+
+        if user is None:
+            raise UserNotFoundError("User not found")
+
+        return user

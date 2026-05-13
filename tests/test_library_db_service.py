@@ -108,3 +108,35 @@ def test_list_users_returns_created_users(db_session: Session, service: LibraryD
 
     assert user_1.id in user_ids
     assert user_2.id in user_ids
+
+def test_get_book_by_id_returns_book(db_session: Session, service: LibraryDBService):
+    created_book = service.create_book(
+        db=db_session,
+        title="Steve Jobs",
+        author="Walter Isaacson",
+    )
+
+    book = service.get_book_by_id(
+        db=db_session,
+        book_id=created_book.id,
+    )
+
+    assert book.id == created_book.id
+    assert book.title == created_book.title
+    assert book.author == created_book.author
+
+def test_get_user_by_id_returns_user(db_session: Session, service: LibraryDBService):
+    created_user = service.create_user(
+        db=db_session,
+        name="Test",
+        surname="User",
+    )
+
+    user = service.get_user_by_id(
+        db=db_session,
+        user_id=created_user.id,
+    )
+
+    assert user.id == created_user.id
+    assert user.name == created_user.name
+    assert user.surname == created_user.surname
