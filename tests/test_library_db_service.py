@@ -3,11 +3,14 @@ import os
 import pytest
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.database.connection import SessionLocal
+from collections.abc import Generator
+
 from app.db_models.user_model import UserModel
 from app.services.library_db_service import LibraryDBService
 from app.db_models.book_copy_model import BookCopyModel
+from app.database.connection import engine
 
 # Database integration tests require DATABASE_URL
 pytestmark = pytest.mark.skipif(
@@ -15,64 +18,93 @@ pytestmark = pytest.mark.skipif(
     reason="DATABASE_URL is not set"
 )
 
-def test_create_user_adds_user_to_database():
-    db = SessionLocal()
-    service = LibraryDBService()
-    user = None
+@pytest.fixture
+def db_session() -> Generator[Session, None, None]:
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    TestSessionLocal = sessionmaker(
+        bind=connection,
+        autoflush=False,
+        autocommit=False,
+        join_transaction_mode="create_savepoint",
+    )
+
+    db = TestSessionLocal()
 
     try:
-        user = service.create_user(db, "Test", "User")
-
-        assert user.id
-        assert user.name == "Test"
-        assert user.surname == "User"
-
-        saved_user = db.get(UserModel, user.id)
-
-        assert saved_user is not None
-        assert saved_user.id == user.id
-        assert saved_user.name == user.name
-        assert saved_user.surname == user.surname
-
-
+        yield db
     finally:
-        if user is not None:
-            db.delete(user)
-            db.commit()
-
         db.close()
+        transaction.rollback()
+        connection.close()
 
-def test_create_book_adds_book_and_copies_to_database():
-    db = SessionLocal()
-    service = LibraryDBService()
-    book = None
-    copies = []
+@pytest.fixture
+def service() -> LibraryDBService:
+    return LibraryDBService()
 
-    try:
-        book = service.create_book(db, "Steve Jobs", "Walter Isaacson")
+def test_create_user_adds_user_to_database(db_session: Session, service: LibraryDBService):
+    user = service.create_user(db=db_session, name="Test", surname="User")
 
-        assert book.id
-        assert book.title == "Steve Jobs"
-        assert book.author == "Walter Isaacson"
+    assert user.id
+    assert user.name == "Test"
+    assert user.surname == "User"
 
-        copies_statement = select(BookCopyModel).where(BookCopyModel.book_id == book.id)
-        copies = db.execute(copies_statement).scalars().all()
+    saved_user = db_session.get(UserModel, user.id)
 
-        assert len(copies) == 1
-        assert all(copy.book_id == book.id for copy in copies)
-        assert all(not copy.is_borrowed for copy in copies)
+    assert saved_user is not None
+    assert saved_user.id == user.id
+    assert saved_user.name == user.name
+    assert saved_user.surname == user.surname
 
-    finally:
-        try:
-            if book is not None:
-                copies_statement = select(BookCopyModel).where(BookCopyModel.book_id == book.id)
-                copies_to_delete = db.execute(copies_statement).scalars().all()
+def test_create_book_adds_book_and_copies_to_database(db_session: Session, service: LibraryDBService):
+    book = service.create_book(db=db_session, title="Steve Jobs", author="Walter Isaacson")
 
-                for copy in copies_to_delete:
-                    db.delete(copy)
+    assert book.id
+    assert book.title == "Steve Jobs"
+    assert book.author == "Walter Isaacson"
 
-                db.delete(book)
-                db.commit()
+    copies_statement = select(BookCopyModel).where(BookCopyModel.book_id == book.id)
+    copies = db_session.execute(copies_statement).scalars().all()
 
-        finally:
-            db.close()
+    assert len(copies) == 1
+    assert all(copy.book_id == book.id for copy in copies)
+    assert all(not copy.is_borrowed for copy in copies)
+
+def test_list_books_returns_created_books(db_session: Session, service: LibraryDBService):
+        book_1 = service.create_book(
+            db=db_session,
+            title="Steve Jobs",
+            author="Walter Isaacson",
+        )
+
+        book_2 = service.create_book(
+            db=db_session,
+            title="The Big Short",
+            author="Michael Lewis"
+        )
+
+        books = service.list_books(db_session)
+        book_ids = [book.id for book in books]
+
+        assert book_1.id in book_ids
+        assert book_2.id in book_ids
+
+def test_list_users_returns_created_users(db_session: Session, service: LibraryDBService):
+    user_1 = service.create_user(
+        db=db_session,
+        name="Test",
+        surname="User"
+    )
+
+    user_2 = service.create_user(
+        db=db_session,
+        name="Test2",
+        surname="User2"
+    )
+
+    users = service.list_users(db_session)
+    user_ids = [user.id for user in users]
+
+    assert user_1.id in user_ids
+    assert user_2.id in user_ids

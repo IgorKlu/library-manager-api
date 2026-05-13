@@ -75,3 +75,11 @@ class LibraryDBService:
         db.refresh(book)
 
         return book
+
+    def list_books(self, db: Session) -> list[BookModel]:
+        statement = select(BookModel)
+        return list(db.scalars(statement).all())
+
+    def list_users(self, db: Session) -> list[UserModel]:
+        statement = select(UserModel)
+        return list(db.scalars(statement).all())
