@@ -102,3 +102,29 @@ class LibraryDBService:
             raise UserNotFoundError("User not found")
 
         return user
+
+    def find_copies_for_book(self, db: Session, book_id: str) -> list[BookCopyModel]:
+        self.get_book_by_id(db, book_id)
+
+        copies_statement = select(BookCopyModel).where(
+            BookCopyModel.book_id == book_id
+        )
+
+        copies = list(db.scalars(copies_statement).all())
+
+        return copies
+
+    def add_book_copy(self, db: Session, book_id: str) -> BookCopyModel:
+        book = self.get_book_by_id(db, book_id)
+
+        book_copy = BookCopyModel(
+            id=self.id_generator(),
+            book_id=book_id
+        )
+
+        db.add(book_copy)
+        db.commit()
+        db.refresh(book_copy)
+
+        return book_copy
+
