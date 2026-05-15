@@ -105,6 +105,14 @@ class LibraryDBService:
 
         return user
 
+    def get_book_copy_by_id(self, db: Session, copy_id: str) -> BookCopyModel:
+        book_copy = db.get(BookCopyModel, copy_id)
+
+        if book_copy is None:
+            raise BookCopyNotFoundError("Book copy not found")
+
+        return book_copy
+
     def find_copies_for_book(self, db: Session, book_id: str) -> list[BookCopyModel]:
         self.get_book_by_id(db, book_id)
 
@@ -158,3 +166,11 @@ class LibraryDBService:
         db.refresh(book_copy)
 
         return book_copy
+
+    def return_book_copy(self, db: Session, user_id: str, copy_id: str) -> BookCopyModel:
+        user = self.get_user_by_id(
+            db=db,
+            user_id=user_id,
+        )
+
+        book_copy = self.ge
