@@ -12,6 +12,7 @@ from app.services.library_db_service import LibraryDBService
 from app.db_models.book_copy_model import BookCopyModel
 from app.database.connection import engine
 from app.exceptions import BookNotFoundError
+from app.db_models.borrowing_model import BorrowingModel
 
 # Database integration tests require DATABASE_URL
 pytestmark = pytest.mark.skipif(
@@ -196,3 +197,42 @@ def test_add_book_copy_ads_book_copy(
     )
 
     assert len(copies) == 2
+
+def test_borrow_book_appends_book_copy(
+        db_session: Session,
+        service: LibraryDBService
+):
+    user = service.create_user(
+        db=db_session,
+        name="Test",
+        surname="User",
+    )
+
+    book = service.create_book(
+        db=db_session,
+        title="Steve Jobs",
+        author="Walter Isaacson"
+    )
+
+    borrowed_copy = service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book.id
+    )
+
+    assert borrowed_copy.id
+    assert borrowed_copy.book_id == book.id
+    assert borrowed_copy.is_borrowed is True
+
+    statement = select(BorrowingModel).where(
+        BorrowingModel.book_copy_id == borrowed_copy.id,
+        BorrowingModel.user_id == user.id,
+        BorrowingModel.returned_at.is_(None)
+    )
+
+    borrowing: BorrowingModel | None = db_session.scalars(statement).first()
+
+    assert borrowing is not None
+    assert borrowing.user_id  == user.id
+    assert borrowing.book_copy_id == borrowed_copy.id
+    assert borrowing.returned_at is None

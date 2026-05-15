@@ -12,9 +12,11 @@ from app.exceptions import (
     BookAlreadyExistsError,
     BookNotFoundError,
     UserNotFoundError,
+    BookCopyNotFoundError,
 
 )
 from app.utils.id_generator import generate_id
+from app.db_models import BorrowingModel
 
 
 class LibraryDBService:
@@ -128,3 +130,31 @@ class LibraryDBService:
 
         return book_copy
 
+    def borrow_book(self, db: Session, user_id: str, book_id: str) -> BookCopyModel:
+        user = self.get_user_by_id(db, user_id)
+
+        book = self.get_book_by_id(db, book_id)
+
+        statement = select(BookCopyModel).where(
+            BookCopyModel.book_id == book_id,
+            BookCopyModel.is_borrowed.is_(False),
+        )
+
+        book_copy: BookCopyModel | None = db.scalars(statement).first()
+
+        if book_copy is None:
+            raise BookCopyNotFoundError("No available copy")
+
+        book_copy.is_borrowed = True
+
+        borrowing = BorrowingModel(
+            id=self.id_generator(),
+            user_id=user_id,
+            book_copy_id=book_copy.id
+        )
+
+        db.add(borrowing)
+        db.commit()
+        db.refresh(book_copy)
+
+        return book_copy
