@@ -458,3 +458,27 @@ def test_search_books_returns_matching_books_by_title(
     assert found_book.id == book.id
     assert found_book.title == book.title
     assert found_book.author == book.author
+
+def test_search_user_returns_matching_users_by_name(
+    db_session: Session,
+    service: LibraryDBService,
+    user: UserModel,
+):
+    search_results = service.search_users(
+        db=db_session,
+        name=user.name,
+    )
+
+    found_user = next(
+        (
+            searched_user
+            for searched_user in search_results
+            if searched_user.id == user.id
+        ),
+        None,
+    )
+
+    assert found_user is not None
+    assert found_user.id == user.id
+    assert found_user.name == user.name
+    assert found_user.surname == user.surname

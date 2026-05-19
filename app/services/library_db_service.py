@@ -238,3 +238,19 @@ class LibraryDBService:
             statement = statement.where(BookModel.author.ilike(f"author%"))
 
         return list(db.scalars(statement).all())
+
+    def search_users(
+            self,
+            db: Session,
+            name: str | None = None,
+            surname: str | None = None,
+    ) -> list[UserModel]:
+        statement = select(UserModel)
+
+        if name is not None:
+            statement = statement.where(UserModel.name.ilike(f"%{name}%"))
+
+        if surname is not None:
+            statement = statement.where(UserModel.surname.ilike(f"%{surname}%"))
+
+        return list(db.scalars(statement).all())
