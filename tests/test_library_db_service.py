@@ -434,3 +434,27 @@ def test_remove_book_raises_error_when_book_copy_is_borrowed(
         )
 
     assert str(error.value) == "Book has borrowed copies"
+
+def test_search_books_returns_matching_books_by_title(
+    db_session: Session,
+    service: LibraryDBService,
+    book: BookModel,
+):
+    search_results = service.search_books(
+        db=db_session,
+        title=book.title,
+    )
+
+    found_book = next(
+        (
+            searched_book
+            for searched_book in search_results
+            if searched_book.id == book.id
+        ),
+        None,
+    )
+
+    assert found_book is not None
+    assert found_book.id == book.id
+    assert found_book.title == book.title
+    assert found_book.author == book.author

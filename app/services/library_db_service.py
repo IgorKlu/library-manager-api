@@ -222,3 +222,19 @@ class LibraryDBService:
         db.commit()
 
         return book
+
+    def search_books(
+            self,
+            db: Session,
+            title: str | None = None,
+            author: str | None = None,
+    ) -> list[BookModel]:
+        statement = select(BookModel)
+
+        if title is not None:
+            statement = statement.where(BookModel.title.ilike(f"%{title}%"))
+
+        if author is not None:
+            statement = statement.where(BookModel.author.ilike(f"author%"))
+
+        return list(db.scalars(statement).all())
