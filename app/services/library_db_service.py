@@ -16,8 +16,9 @@ from app.exceptions import (
     UserNotFoundError,
     BookCopyNotFoundError,
     BorrowingNotFoundError,
-
+    BookIsBorrowedError,
 )
+
 from app.utils.id_generator import generate_id
 from app.db_models import BorrowingModel
 
@@ -199,3 +200,25 @@ class LibraryDBService:
         db.refresh(book_copy)
 
         return book_copy
+
+    def remove_book(self, db: Session, book_id: str) -> BookModel:
+        book = self.get_book_by_id(
+            db=db,
+            book_id=book_id,
+        )
+
+        copies = self.find_copies_for_book(
+            db=db,
+            book_id=book_id,
+        )
+
+        if any(book_copy.is_borrowed is True for book_copy in copies):
+            raise BookIsBorrowedError("Book has borrowed copies")
+
+        for book_copy in copies:
+            db.delete(book_copy)
+
+        db.delete(book)
+        db.commit()
+
+        return book

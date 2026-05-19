@@ -17,7 +17,9 @@ from app.exceptions import (
     UserNotFoundError,
     BookCopyNotFoundError,
     BorrowingNotFoundError,
+    BookIsBorrowedError,
 )
+
 from app.db_models.borrowing_model import BorrowingModel
 
 # Database integration tests require DATABASE_URL
@@ -382,3 +384,53 @@ def test_return_book_raises_borrowing_not_found_error_when_user_has_no_active_bo
         )
 
     assert str(error.value) == "Borrowing not found"
+
+def test_remove_book_deletes_book_and_its_copies(
+        db_session: Session,
+        service: LibraryDBService,
+        book: BookModel
+):
+    copies = service.find_copies_for_book(
+        db=db_session,
+        book_id=book.id
+    )
+
+    removed_book = service.remove_book(
+        db=db_session,
+        book_id=book.id
+    )
+
+    assert removed_book.id == book.id
+
+    with pytest.raises(BookNotFoundError):
+        service.get_book_by_id(
+            db=db_session,
+            book_id=book.id
+        )
+
+    for book_copy in copies:
+        with pytest.raises(BookCopyNotFoundError):
+            service.get_book_copy_by_id(
+                db=db_session,
+                copy_id=book_copy.id,
+            )
+
+def test_remove_book_raises_error_when_book_copy_is_borrowed(
+        db_session:  Session,
+        service: LibraryDBService,
+        book: BookModel,
+        user: UserModel
+):
+    service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book.id
+    )
+
+    with pytest.raises(BookIsBorrowedError) as error:
+        service.remove_book(
+            db=db_session,
+            book_id=book.id
+        )
+
+    assert str(error.value) == "Book has borrowed copies"
