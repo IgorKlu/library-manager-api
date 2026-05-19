@@ -3,6 +3,8 @@ from collections.abc import Callable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timezone
+
 from app.db_models.user_model import UserModel
 from app.db_models.book_model import BookModel
 from app.db_models.book_copy_model import BookCopyModel
@@ -13,6 +15,7 @@ from app.exceptions import (
     BookNotFoundError,
     UserNotFoundError,
     BookCopyNotFoundError,
+    BorrowingNotFoundError,
 
 )
 from app.utils.id_generator import generate_id
@@ -173,4 +176,26 @@ class LibraryDBService:
             user_id=user_id,
         )
 
-        book_copy = self.ge
+        book_copy = self.get_book_copy_by_id(
+            db=db,
+            copy_id=copy_id
+        )
+
+        statement = select(BorrowingModel).where(
+            BorrowingModel.user_id == user.id,
+            BorrowingModel.book_copy_id == copy_id,
+            BorrowingModel.returned_at.is_(None)
+        )
+
+        borrowing: BorrowingModel | None = db.scalars(statement).one_or_none()
+
+        if borrowing is None:
+            raise BorrowingNotFoundError("Borrowing not found")
+
+        book_copy.is_borrowed = False
+        borrowing.returned_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(book_copy)
+
+        return book_copy

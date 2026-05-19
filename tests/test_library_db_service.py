@@ -16,6 +16,7 @@ from app.exceptions import (
     BookNotFoundError,
     UserNotFoundError,
     BookCopyNotFoundError,
+    BorrowingNotFoundError,
 )
 from app.db_models.borrowing_model import BorrowingModel
 
@@ -302,3 +303,82 @@ def test_borrow_book_appends_book_copy(
     assert borrowing.user_id  == user.id
     assert borrowing.book_copy_id == borrowed_copy.id
     assert borrowing.returned_at is None
+
+def test_borrow_book_raises_book_copy_not_found_when_no_copy_is_available(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        book: BookModel,
+):
+    service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book.id,
+    )
+
+    with pytest.raises(BookCopyNotFoundError) as error:
+        service.borrow_book(
+            db=db_session,
+            user_id=user.id,
+            book_id=book.id,
+        )
+
+    assert str(error.value) == "No available copy"
+
+def test_return_book_marks_copy_as_not_borrowed_and_sets_returned_at(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        book: BookModel,
+):
+    borrowed_copy = service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book.id
+    )
+
+    returned_copy = service.return_book_copy(
+        db=db_session,
+        user_id=user.id,
+        copy_id=borrowed_copy.id,
+    )
+
+    assert returned_copy.id == borrowed_copy.id
+    assert returned_copy.book_id == book.id
+    assert returned_copy.is_borrowed is False
+
+
+    statement = select(BorrowingModel).where(
+        BorrowingModel.user_id == user.id,
+        BorrowingModel.book_copy_id == returned_copy.id,
+    )
+
+    borrowing: BorrowingModel | None = db_session.scalars(statement).one_or_none()
+
+    assert borrowing is not None
+    assert borrowing.user_id == user.id
+    assert borrowing.book_copy_id == returned_copy.id
+    assert borrowing.returned_at is not None
+
+
+def test_return_book_raises_borrowing_not_found_error_when_user_has_no_active_borrowings(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        book: BookModel,
+):
+    copies = service.find_copies_for_book(
+        db=db_session,
+        book_id=book.id
+    )
+
+    book_copy = copies[0]
+
+    with pytest.raises(BorrowingNotFoundError) as error:
+        service.return_book_copy(
+            db=db_session,
+            user_id=user.id,
+            copy_id=book_copy.id,
+        )
+
+    assert str(error.value) == "Borrowing not found"
