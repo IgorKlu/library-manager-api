@@ -254,3 +254,20 @@ class LibraryDBService:
             statement = statement.where(UserModel.surname.ilike(f"%{surname}%"))
 
         return list(db.scalars(statement).all())
+
+    def list_user_active_borrowings(
+            self,
+            db: Session,
+            user_id: str
+    ) -> list[BorrowingModel]:
+        user = self.get_user_by_id(
+            db=db,
+            user_id=user_id,
+        )
+
+        statement = select(BorrowingModel).where(
+            BorrowingModel.user_id == user_id,
+            BorrowingModel.returned_at.is_(None)
+        )
+
+        return list(db.scalars(statement).all())

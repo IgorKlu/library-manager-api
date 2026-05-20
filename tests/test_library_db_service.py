@@ -78,12 +78,42 @@ def book_with_three_copies(db_session: Session, service: LibraryDBService) -> Bo
         copies_count=3
     )
 
+@pytest.fixture
+def borrowed_copy(
+        db_session: Session,
+        service: LibraryDBService,
+        book: BookModel,
+        user: UserModel,
+) -> BookCopyModel:
+    return service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book.id,
+    )
+
+@pytest.fixture
+def returned_copy(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        borrowed_copy: BookCopyModel
+) -> BookCopyModel:
+    return service.return_book_copy(
+        db=db_session,
+        user_id=user.id,
+        copy_id=borrowed_copy.id,
+    )
 
 def test_create_user_adds_user_to_database(
         db_session: Session,
-        service: LibraryDBService,
-        user: UserModel
+        service: LibraryDBService
 ):
+    user = service.create_user(
+        db=db_session,
+        name="Test",
+        surname="User",
+    )
+
     assert user.id
     assert user.name == "Test"
     assert user.surname == "User"
@@ -97,9 +127,14 @@ def test_create_user_adds_user_to_database(
 
 def test_create_book_adds_book_and_copies_to_database(
         db_session: Session,
-        service: LibraryDBService,
-        book: BookModel
+        service: LibraryDBService
 ):
+    book = service.create_book(
+        db=db_session,
+        title="Steve Jobs",
+        author="Walter Isaacson",
+    )
+
     assert book.id
     assert book.title == "Steve Jobs"
     assert book.author == "Walter Isaacson"
@@ -277,18 +312,12 @@ def test_add_book_copy_ads_book_copy(
 
     assert len(copies) == 2
 
-def test_borrow_book_appends_book_copy(
+def test_borrow_book_marks_copy_as_borrowed_and_creates_borrowing(
         db_session: Session,
-        service: LibraryDBService,
         user: UserModel,
         book: BookModel,
+        borrowed_copy: BookCopyModel,
 ):
-    borrowed_copy = service.borrow_book(
-        db=db_session,
-        user_id=user.id,
-        book_id=book.id
-    )
-
     assert borrowed_copy.id
     assert borrowed_copy.book_id == book.id
     assert borrowed_copy.is_borrowed is True
@@ -296,7 +325,7 @@ def test_borrow_book_appends_book_copy(
     statement = select(BorrowingModel).where(
         BorrowingModel.book_copy_id == borrowed_copy.id,
         BorrowingModel.user_id == user.id,
-        BorrowingModel.returned_at.is_(None)
+        BorrowingModel.returned_at.is_(None),
     )
 
     borrowing: BorrowingModel | None = db_session.scalars(statement).first()
@@ -311,13 +340,8 @@ def test_borrow_book_raises_book_copy_not_found_when_no_copy_is_available(
         service: LibraryDBService,
         user: UserModel,
         book: BookModel,
+        borrowed_copy: BookCopyModel,
 ):
-    service.borrow_book(
-        db=db_session,
-        user_id=user.id,
-        book_id=book.id,
-    )
-
     with pytest.raises(BookCopyNotFoundError) as error:
         service.borrow_book(
             db=db_session,
@@ -329,26 +353,14 @@ def test_borrow_book_raises_book_copy_not_found_when_no_copy_is_available(
 
 def test_return_book_marks_copy_as_not_borrowed_and_sets_returned_at(
         db_session: Session,
-        service: LibraryDBService,
         user: UserModel,
         book: BookModel,
+        borrowed_copy: BookCopyModel,
+        returned_copy: BookCopyModel,
 ):
-    borrowed_copy = service.borrow_book(
-        db=db_session,
-        user_id=user.id,
-        book_id=book.id
-    )
-
-    returned_copy = service.return_book_copy(
-        db=db_session,
-        user_id=user.id,
-        copy_id=borrowed_copy.id,
-    )
-
     assert returned_copy.id == borrowed_copy.id
     assert returned_copy.book_id == book.id
     assert returned_copy.is_borrowed is False
-
 
     statement = select(BorrowingModel).where(
         BorrowingModel.user_id == user.id,
@@ -361,7 +373,6 @@ def test_return_book_marks_copy_as_not_borrowed_and_sets_returned_at(
     assert borrowing.user_id == user.id
     assert borrowing.book_copy_id == returned_copy.id
     assert borrowing.returned_at is not None
-
 
 def test_return_book_raises_borrowing_not_found_error_when_user_has_no_active_borrowings(
         db_session: Session,
@@ -388,7 +399,7 @@ def test_return_book_raises_borrowing_not_found_error_when_user_has_no_active_bo
 def test_remove_book_deletes_book_and_its_copies(
         db_session: Session,
         service: LibraryDBService,
-        book: BookModel
+        book: BookModel,
 ):
     copies = service.find_copies_for_book(
         db=db_session,
@@ -419,14 +430,9 @@ def test_remove_book_raises_error_when_book_copy_is_borrowed(
         db_session:  Session,
         service: LibraryDBService,
         book: BookModel,
-        user: UserModel
+        user: UserModel,
+        borrowed_copy: BookCopyModel,
 ):
-    service.borrow_book(
-        db=db_session,
-        user_id=user.id,
-        book_id=book.id
-    )
-
     with pytest.raises(BookIsBorrowedError) as error:
         service.remove_book(
             db=db_session,
@@ -482,3 +488,45 @@ def test_search_user_returns_matching_users_by_name(
     assert found_user.id == user.id
     assert found_user.name == user.name
     assert found_user.surname == user.surname
+
+def test_list_user_borrowings_returns_active_borrowings(
+        db_session: Session,
+        service: LibraryDBService,
+        book: BookModel,
+        user: UserModel,
+        borrowed_copy: BorrowingModel,
+):
+    active_borrowings = service.list_user_active_borrowings(
+        db=db_session,
+        user_id=user.id
+    )
+
+    borrowing = next(
+        active_borrowing
+        for active_borrowing in active_borrowings
+        if active_borrowing.book_copy_id == borrowed_copy.id
+    )
+
+    assert borrowing is not None
+    assert borrowing.user_id == user.id
+    assert borrowing.book_copy_id == borrowed_copy.id
+    assert borrowing.returned_at is None
+
+def test_list_user_borrowings_does_not_returns_returned_borrowings(
+        db_session: Session,
+        service: LibraryDBService,
+        book: BookModel,
+        user: UserModel,
+        returned_copy: BookCopyModel,
+):
+    active_borrowings = service.list_user_active_borrowings(
+        db=db_session,
+        user_id=user.id
+    )
+
+    active_borrowed_copy_ids = [
+        borrowing.book_copy_id
+        for borrowing in active_borrowings
+    ]
+
+    assert returned_copy.id not in active_borrowed_copy_ids
