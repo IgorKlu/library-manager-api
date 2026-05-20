@@ -287,3 +287,21 @@ class LibraryDBService:
         )
 
         return list(db.scalars(statement).all())
+
+    def list_available_copies_for_book(
+            self,
+            db: Session,
+            book_id: str,
+    ) -> list[BookCopyModel]:
+        book_copies = self.find_copies_for_book(
+            db=db,
+            book_id=book_id,
+        )
+
+        available_copies = [
+            book_copy
+            for book_copy in book_copies
+            if book_copy.is_borrowed is False
+        ]
+
+        return available_copies

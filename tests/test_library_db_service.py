@@ -548,3 +548,36 @@ def test_list_user_borrowing_history_returns_all_user_borrowings(
     ]
 
     assert returned_copy.id in borrowed_copy_ids
+
+def test_list_available_copies_for_book_returns_only_available_copies(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        book_with_three_copies: BookModel,
+):
+    borrowed_copy= service.borrow_book(
+        db=db_session,
+        user_id=user.id,
+        book_id=book_with_three_copies.id
+    )
+
+    available_copies = service.list_available_copies_for_book(
+        db=db_session,
+        book_id=book_with_three_copies.id,
+    )
+
+    available_copy_ids = [
+        book_copy.id
+        for book_copy in available_copies
+    ]
+
+    assert borrowed_copy.id not in available_copy_ids
+    assert len(available_copy_ids) == 2
+    assert all(
+        book_copy.book_id == book_with_three_copies.id
+        for book_copy in available_copies
+    )
+    assert all(
+        book_copy.is_borrowed is False
+        for book_copy in available_copies
+    )
