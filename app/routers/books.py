@@ -1,47 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
-from app.state import library
-from app.schemas.book_schema import BookCreate, BookResponse, BookCopyResponse
+from app.services.library_db_service import LibraryDBService
 
-from app.exceptions import (
-    BookAlreadyExistsError,
-    BookNotFoundError,
-    BookIsBorrowedError,
+from app.db_models.book_model import BookModel
+
+from app.schemas.book_schema import BookResponse
+
+from app.database.connection import get_db
+
+router = APIRouter(
+    prefix="/books",
+    tags=["books"],
 )
 
-router = APIRouter(prefix="/books", tags=["books"])
+service = LibraryDBService()
 
 @router.get("/", response_model=list[BookResponse])
-def get_books():
-    return library.list_books()
-
-@router.post("/", response_model=BookResponse, status_code=201)
-def add_book(book_data: BookCreate):
-    try:
-        return library.create_book(
-            book_data.title,
-            book_data.author,
-            book_data.copies,
-        )
-    except BookAlreadyExistsError:
-        raise HTTPException(status_code=409, detail="Book already exists")
-
-@router.get("/{book_id}/copies", response_model=list[BookCopyResponse])
-def show_book_copies(book_id: str):
-    book = library.find_book_by_id(book_id)
-
-    if book is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-
-    return library.find_copies_for_book(book_id)
-
-@router.delete("/{book_id}", response_model=BookResponse)
-def delete_book(book_id: str):
-    try:
-        return library.remove_book(book_id)
-
-    except BookNotFoundError:
-        raise HTTPException(status_code=404, detail="Book not found")
-
-    except BookIsBorrowedError:
-        raise HTTPException(status_code=409, detail="Book is borrowed")
+def list_books(db: Session = Depends(get_db)) -> list[BookModel]:
+    return service.list_books(db)
