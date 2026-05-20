@@ -271,3 +271,19 @@ class LibraryDBService:
         )
 
         return list(db.scalars(statement).all())
+
+    def list_user_borrowing_history(
+            self,
+            db: Session,
+            user_id: str,
+    ) -> list[BorrowingModel]:
+        self.get_user_by_id(
+            db=db,
+            user_id=user_id,
+        )
+
+        statement = select(BorrowingModel).where(
+            BorrowingModel.user_id == user_id
+        )
+
+        return list(db.scalars(statement).all())

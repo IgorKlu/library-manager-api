@@ -530,3 +530,21 @@ def test_list_user_borrowings_does_not_returns_returned_borrowings(
     ]
 
     assert returned_copy.id not in active_borrowed_copy_ids
+
+def test_list_user_borrowing_history_returns_all_user_borrowings(
+        db_session: Session,
+        service: LibraryDBService,
+        user: UserModel,
+        returned_copy: BookCopyModel,
+):
+    borrowing_history = service.list_user_borrowing_history(
+        db=db_session,
+        user_id=user.id,
+    )
+
+    borrowed_copy_ids = [
+        borrowing.book_copy_id
+        for borrowing in borrowing_history
+    ]
+
+    assert returned_copy.id in borrowed_copy_ids
