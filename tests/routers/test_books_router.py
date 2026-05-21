@@ -36,3 +36,17 @@ def test_create_book_endpoint_creates_book(
     assert book_data["id"]
     assert book_data["title"] == "Steve Jobs"
     assert book_data["author"] == "Walter Isaacson"
+
+def test_get_book_by_id_endpoint_returns_book(
+        client: TestClient,
+        book: BookModel,
+):
+    get_response = client.get(f"/books/{book.id}")
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    book_data = get_response.json()
+
+    assert book_data["id"]
+    assert book_data["title"] == book.title
+    assert book_data["author"] == book.author

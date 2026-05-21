@@ -10,7 +10,8 @@ from app.schemas.book_schema import BookResponse, BookCreate
 from app.database.connection import get_db
 
 from app.exceptions import (
-    BookAlreadyExistsError
+    BookAlreadyExistsError,
+    BookNotFoundError,
 )
 
 router = APIRouter(
@@ -37,5 +38,26 @@ def create_book(book_data: BookCreate, db: Session = Depends(get_db)) -> BookMod
     except BookAlreadyExistsError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        )
+
+@router.get(
+    "/{book_id}",
+    response_model=BookResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_book_by_id(
+        book_id: str,
+        db: Session = Depends(get_db)
+) -> BookModel:
+    try:
+        return service.get_book_by_id(
+            db=db,
+            book_id=book_id
+        )
+
+    except BookNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         )

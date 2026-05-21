@@ -50,7 +50,13 @@ class LibraryDBService:
 
         return user
 
-    def create_book(self, db: Session, title: str, author: str, copies_count: int = 1) -> BookModel:
+    def create_book(
+            self,
+            db: Session,
+            title: str,
+            author: str,
+            copies_count: int = 1
+    ) -> BookModel:
         if copies_count < 1:
             raise ValueError("Copies count must be greater or equal 1")
 
@@ -117,7 +123,11 @@ class LibraryDBService:
 
         return book_copy
 
-    def find_copies_for_book(self, db: Session, book_id: str) -> list[BookCopyModel]:
+    def find_copies_for_book(
+            self,
+            db: Session,
+            book_id: str
+    ) -> list[BookCopyModel]:
         self.get_book_by_id(db, book_id)
 
         copies_statement = select(BookCopyModel).where(
@@ -142,7 +152,12 @@ class LibraryDBService:
 
         return book_copy
 
-    def borrow_book(self, db: Session, user_id: str, book_id: str) -> BookCopyModel:
+    def borrow_book(
+            self,
+            db: Session,
+            user_id: str,
+            book_id: str
+    ) -> BookCopyModel:
         user = self.get_user_by_id(db, user_id)
 
         book = self.get_book_by_id(db, book_id)
@@ -171,7 +186,12 @@ class LibraryDBService:
 
         return book_copy
 
-    def return_book_copy(self, db: Session, user_id: str, copy_id: str) -> BookCopyModel:
+    def return_book_copy(
+            self,
+            db: Session,
+            user_id: str,
+            copy_id: str
+    ) -> BookCopyModel:
         user = self.get_user_by_id(
             db=db,
             user_id=user_id,
