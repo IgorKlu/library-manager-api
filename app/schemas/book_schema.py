@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class BookCreate(BaseModel):
     title: str = Field(min_length=1, max_length=1000)
     author: str = Field(min_length=1, max_length=1000)
-    copies: int = Field(default=1, ge=1)
+    copies_count: int = Field(default=1, ge=1)
 
 
 class BookResponse(BaseModel):

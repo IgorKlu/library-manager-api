@@ -1,13 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 
 from app.services.library_db_service import LibraryDBService
 
 from app.db_models.book_model import BookModel
 
-from app.schemas.book_schema import BookResponse
+from app.schemas.book_schema import BookResponse, BookCreate
 
 from app.database.connection import get_db
+
+from app.exceptions import (
+    BookAlreadyExistsError
+)
 
 router = APIRouter(
     prefix="/books",
@@ -16,6 +20,22 @@ router = APIRouter(
 
 service = LibraryDBService()
 
-@router.get("/", response_model=list[BookResponse])
+@router.get("/", response_model=list[BookResponse], status_code=status.HTTP_200_OK)
 def list_books(db: Session = Depends(get_db)) -> list[BookModel]:
     return service.list_books(db)
+
+@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
+def create_book(book_data: BookCreate, db: Session = Depends(get_db)) -> BookModel:
+    try:
+        return service.create_book(
+            db=db,
+            title=book_data.title,
+            author=book_data.author,
+            copies_count=book_data.copies_count,
+        )
+
+    except BookAlreadyExistsError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        )

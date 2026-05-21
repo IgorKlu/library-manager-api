@@ -4,11 +4,13 @@ from app.schemas.book_schema import BookResponse
 
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=1000)
+    surname: str = Field(min_length=1, max_length=1000)
 
 
 class UserResponse(BaseModel):
     id: str
     name: str
+    surname: str
 
 
 class UserWithBorrowedCopiesResponse(BaseModel):

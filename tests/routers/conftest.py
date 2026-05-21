@@ -11,6 +11,7 @@ from app.database.connection import engine, get_db
 from app.services.library_db_service import LibraryDBService
 
 from app.db_models.book_model import BookModel
+from app.db_models.user_model import UserModel
 
 @pytest.fixture
 def service() -> LibraryDBService:
@@ -57,15 +58,10 @@ def book(db_session: Session, service: LibraryDBService) -> BookModel:
         author="Walter Isaacson",
     )
 
-def test_list_books_endpoint_returns_books(
-        client: TestClient,
-        book: BookModel,
-):
-    response = client.get("/books/")
-
-    assert response.status_code == 200
-
-    books = response.json()
-    book_ids = [book_data["id"] for book_data in books]
-
-    assert book.id in book_ids
+@pytest.fixture
+def user(db_session: Session, service: LibraryDBService) -> UserModel:
+    return service.create_user(
+        db=db_session,
+        name="Test",
+        surname="User",
+    )
