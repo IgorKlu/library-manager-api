@@ -47,3 +47,24 @@ def create_user(user_data: UserCreate ,db: Session = Depends(get_db)) -> UserMod
             detail=str(error),
         )
 
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK
+)
+def get_user_by_id(
+    user_id: str,
+    db: Session = Depends(get_db),
+) -> UserModel:
+    try:
+        return service.get_user_by_id(
+            db=db,
+            user_id=user_id,
+        )
+
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
