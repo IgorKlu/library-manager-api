@@ -12,6 +12,7 @@ from app.database.connection import get_db
 from app.exceptions import (
     BookAlreadyExistsError,
     BookNotFoundError,
+    BookCopyNotFoundError,
 )
 
 router = APIRouter(
@@ -21,12 +22,23 @@ router = APIRouter(
 
 service = LibraryDBService()
 
-@router.get("/", response_model=list[BookResponse], status_code=status.HTTP_200_OK)
+@router.get(
+    "/",
+    response_model=list[BookResponse],
+    status_code=status.HTTP_200_OK,
+)
 def list_books(db: Session = Depends(get_db)) -> list[BookModel]:
     return service.list_books(db)
 
-@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
-def create_book(book_data: BookCreate, db: Session = Depends(get_db)) -> BookModel:
+@router.post(
+    "/",
+    response_model=BookResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_book(
+        book_data: BookCreate,
+        db: Session = Depends(get_db)
+) -> BookModel:
     try:
         return service.create_book(
             db=db,
@@ -72,3 +84,17 @@ def find_copies_for_book(book_id: str, db: Session = Depends(get_db)):
             db=db,
             book_id=book_id,
         )
+
+@router.get(
+    "/copies/{copy_id}",
+    response_model=BookCopyResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_book_copy_by_id(copy_id: str, db: Session =  Depends(get_db)):
+    try:
+        return service.get_book_copy_by_id(
+            db=db,
+            copy_id=copy_id,
+        )
+    except BookCopyNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))

@@ -271,7 +271,9 @@ class LibraryDBService:
             statement = statement.where(UserModel.name.ilike(f"%{name}%"))
 
         if surname is not None:
-            statement = statement.where(UserModel.surname.ilike(f"%{surname}%"))
+            statement = statement.where(
+                UserModel.surname.ilike(f"%{surname}%")
+            )
 
         return list(db.scalars(statement).all())
 

@@ -87,3 +87,32 @@ def test_find_copies_for_book_returns_copies(
     assert len(book_copies) == 1
     assert book_copies[0]["book_id"] == book.id
     assert book_copies[0]["is_borrowed"] is False
+
+def test_get_book_copy_by_id_returns_book_copy(
+        client: TestClient,
+        book: BookModel,
+):
+    copies_response = client.get(f"/books/{book.id}/copies/")
+
+    assert copies_response.status_code == status.HTTP_200_OK
+
+    copies = copies_response.json()
+    book_copy = copies[0]
+
+    get_response = client.get(f"books/copies/{book_copy['id']}")
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    book_copy_data = get_response.json()
+
+    assert book_copy_data["id"] == book_copy["id"]
+    assert book_copy_data["book_id"] == book.id
+    assert book_copy_data["is_borrowed"] is False
+
+def test_get_book_copy_by_id_raises_404_when_copy_does_not_exist(
+        client: TestClient
+):
+    get_response = client.get("/books/copies/invalid-copy-id")
+
+    assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert get_response.json()["detail"] == "Book copy not found"
