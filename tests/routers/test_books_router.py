@@ -116,3 +116,25 @@ def test_get_book_copy_by_id_raises_404_when_copy_does_not_exist(
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
     assert get_response.json()["detail"] == "Book copy not found"
+
+def test_add_book_copy_adds_book_copy_to_existing_book(
+        client: TestClient,
+        book: BookModel,
+):
+    post_response = client.post(f"/books/{book.id}/copies")
+
+    assert post_response.status_code == status.HTTP_201_CREATED
+
+    created_copy = post_response.json()
+
+    assert created_copy["id"]
+    assert created_copy["book_id"] == book.id
+    assert created_copy["is_borrowed"] is False
+
+def test_add_book_copy_raises_404_when_book_does_not_exist(
+        client: TestClient
+):
+    post_response = client.post("books/invalid-book-id/copies")
+
+    assert post_response.status_code == status.HTTP_404_NOT_FOUND
+    assert post_response.json()["detail"] == "Book not found"

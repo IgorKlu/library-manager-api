@@ -97,4 +97,23 @@ def get_book_copy_by_id(copy_id: str, db: Session =  Depends(get_db)):
             copy_id=copy_id,
         )
     except BookCopyNotFoundError as error:
-        raise HTTPException(status_code=404, detail=str(error))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error))
+
+@router.post(
+    "/{book_id}/copies",
+    response_model=BookCopyResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def add_book_copy(book_id: str, db: Session = Depends(get_db)):
+    try:
+        return service.add_book_copy(
+            db=db,
+            book_id=book_id
+        )
+    except BookNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
