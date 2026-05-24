@@ -73,3 +73,17 @@ def test_get_book_by_id_endpoint_returns_404_when_book_does_not_exist(
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
     assert get_response.json()["detail"] == "Book not found"
+
+def test_find_copies_for_book_returns_copies(
+        client: TestClient,
+        book: BookModel,
+):
+    get_response = client.get(f"/books/{book.id}/copies")
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    book_copies = get_response.json()
+
+    assert len(book_copies) == 1
+    assert book_copies[0]["book_id"] == book.id
+    assert book_copies[0]["is_borrowed"] is False

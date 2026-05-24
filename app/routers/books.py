@@ -5,7 +5,7 @@ from app.services.library_db_service import LibraryDBService
 
 from app.db_models.book_model import BookModel
 
-from app.schemas.book_schema import BookResponse, BookCreate
+from app.schemas.book_schema import BookResponse, BookCreate, BookCopyResponse
 
 from app.database.connection import get_db
 
@@ -60,4 +60,15 @@ def get_book_by_id(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
+        )
+
+@router.get(
+    "/{book_id}/copies",
+    response_model=list[BookCopyResponse],
+    status_code=status.HTTP_200_OK
+)
+def find_copies_for_book(book_id: str, db: Session = Depends(get_db)):
+        return service.find_copies_for_book(
+            db=db,
+            book_id=book_id,
         )
