@@ -178,7 +178,7 @@ class LibraryDBService:
             id=self.id_generator(),
             user_id=user_id,
             book_copy_id=book_copy.id
-        )
+        ) 
 
         db.add(borrowing)
         db.commit()

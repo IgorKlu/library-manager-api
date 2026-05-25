@@ -3,6 +3,7 @@ from collections.abc import Generator
 import pytest
 
 from fastapi.testclient import TestClient
+from fastapi import status
 
 from app.main import app
 
@@ -65,3 +66,21 @@ def user(db_session: Session, service: LibraryDBService) -> UserModel:
         name="Test",
         surname="User",
     )
+
+@pytest.fixture
+def borrowed_copy(
+    client: TestClient,
+    book: BookModel,
+    user: UserModel,
+) -> dict:
+    borrow_response = client.post(
+        "/borrowings/",
+        json={
+            "user_id": user.id,
+            "book_id": book.id,
+        },
+    )
+
+    assert borrow_response.status_code == status.HTTP_201_CREATED
+
+    return borrow_response.json()

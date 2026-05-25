@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 
 from app.schemas.book_schema import BookCopyResponse
-from app.schemas.borrowing_schema import BorrowBookRequest
+from app.schemas.borrowing_schema import BorrowBookRequest, ReturnBookRequest
 
 from app.database.connection import get_db
 
@@ -15,6 +15,7 @@ from app.exceptions import (
     UserNotFoundError,
     BookNotFoundError,
     BookCopyNotFoundError,
+    BorrowingNotFoundError,
 )
 
 router = APIRouter(
@@ -47,5 +48,33 @@ def borrow_book(borrow_data: BorrowBookRequest, db: Session = Depends(get_db)):
     except BookCopyNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(error)
+        )
+
+@router.post(
+    "/return",
+    response_model=BookCopyResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def return_book(return_data: ReturnBookRequest, db: Session = Depends(get_db)):
+    try:
+        return service.return_book_copy(
+            db=db,
+            user_id=return_data.user_id,
+            copy_id=return_data.copy_id,
+        )
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        )
+    except BookCopyNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+    except BorrowingNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error)
         )
