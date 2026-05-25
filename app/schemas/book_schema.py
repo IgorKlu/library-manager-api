@@ -17,7 +17,3 @@ class BookCopyResponse(BaseModel):
     id: str
     book_id: str
     is_borrowed: bool
-
-
-class BorrowBookRequest(BaseModel):
-    book_id: str = Field(min_length=1)

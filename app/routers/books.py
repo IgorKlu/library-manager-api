@@ -5,7 +5,11 @@ from app.services.library_db_service import LibraryDBService
 
 from app.db_models.book_model import BookModel
 
-from app.schemas.book_schema import BookResponse, BookCreate, BookCopyResponse
+from app.schemas.book_schema import (
+    BookResponse,
+    BookCreate,
+    BookCopyResponse,
+)
 
 from app.database.connection import get_db
 
@@ -13,6 +17,7 @@ from app.exceptions import (
     BookAlreadyExistsError,
     BookNotFoundError,
     BookCopyNotFoundError,
+    UserNotFoundError,
 )
 
 router = APIRouter(

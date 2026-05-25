@@ -158,9 +158,9 @@ class LibraryDBService:
             user_id: str,
             book_id: str
     ) -> BookCopyModel:
-        user = self.get_user_by_id(db, user_id)
+        self.get_user_by_id(db, user_id)
 
-        book = self.get_book_by_id(db, book_id)
+        self.get_book_by_id(db, book_id)
 
         statement = select(BookCopyModel).where(
             BookCopyModel.book_id == book_id,
