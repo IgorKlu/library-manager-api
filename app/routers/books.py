@@ -136,5 +136,5 @@ def search_books(
     return service.search_books(
         db=db,
         title=title,
-        author=author
+        author=author,
     )

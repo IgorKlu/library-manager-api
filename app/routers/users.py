@@ -48,6 +48,22 @@ def create_user(user_data: UserCreate ,db: Session = Depends(get_db)) -> UserMod
         )
 
 @router.get(
+    "/search",
+    response_model=list[UserResponse],
+    status_code=status.HTTP_200_OK,
+)
+def search_users(
+        name: str | None = None,
+        surname: str | None = None,
+        db: Session = Depends(get_db),
+):
+    return service.search_users(
+        db=db,
+        name=name,
+        surname=surname,
+    )
+
+@router.get(
     "/{user_id}",
     response_model=UserResponse,
     status_code=status.HTTP_200_OK
@@ -67,4 +83,5 @@ def get_user_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error)
         )
+
 

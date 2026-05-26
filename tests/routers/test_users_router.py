@@ -74,3 +74,23 @@ def test_get_user_by_id_raises_404_when_user_does_not_exist(
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
     assert get_response.json()["detail"] == "User not found"
+
+def test_search_users_returns_users_list(
+        client: TestClient,
+        user: UserModel,
+):
+    get_response = client.get(
+        "/users/search",
+        params={
+            "name": user.name,
+            "surname": user.surname,
+        },
+    )
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    users = get_response.json()
+
+    user_ids = [user_data["id"] for user_data in users]
+
+    assert user.id in user_ids
