@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class BookCreate(BaseModel):
@@ -12,8 +12,11 @@ class BookResponse(BaseModel):
     title: str
     author: str
 
+    model_config = ConfigDict(from_attributes=True)
 
 class BookCopyResponse(BaseModel):
     id: str
     book_id: str
     is_borrowed: bool
+
+    model_config = ConfigDict(from_attributes=True)

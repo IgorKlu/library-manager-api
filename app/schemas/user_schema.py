@@ -1,5 +1,4 @@
-from pydantic import BaseModel, Field
-from app.schemas.book_schema import BookResponse
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class UserCreate(BaseModel):
@@ -12,8 +11,11 @@ class UserResponse(BaseModel):
     name: str
     surname: str
 
+    model_config = ConfigDict(from_attributes=True)
 
 class UserWithBorrowedCopiesResponse(BaseModel):
     id: str
     name: str
     borrowed_copy_ids: list[str]
+
+    model_config = ConfigDict(from_attributes=True)

@@ -94,3 +94,38 @@ def test_search_users_returns_users_list(
     user_ids = [user_data["id"] for user_data in users]
 
     assert user.id in user_ids
+
+def test_list_user_active_borrowings_returns_borrowings_list(
+        client: TestClient,
+        user: UserModel,
+        borrowed_copy: dict,
+):
+    get_response = client.get(
+        f"/users/{user.id}/borrowings/active"
+    )
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    user_borrowings = get_response.json()
+
+    borrowing: dict | None = next(
+        (
+        borrowing_data
+        for borrowing_data in user_borrowings
+        if borrowing_data["book_copy_id"] == borrowed_copy["id"]
+        ),
+        None,
+    )
+
+    assert borrowing is not None
+    assert borrowing["user_id"] == user.id
+    assert borrowing["book_copy_id"] == borrowed_copy["id"]
+    assert borrowing["returned_at"] is None
+
+def test_list_user_active_borrowing_raises_404_when_user_does_not_exist(
+        client: TestClient
+):
+    get_response = client.get("users/invalid-user-id/borrowings/active")
+
+    assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert get_response.json()["detail"] == "User not found"

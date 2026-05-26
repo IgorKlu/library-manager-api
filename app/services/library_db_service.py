@@ -282,7 +282,7 @@ class LibraryDBService:
             db: Session,
             user_id: str
     ) -> list[BorrowingModel]:
-        user = self.get_user_by_id(
+        self.get_user_by_id(
             db=db,
             user_id=user_id,
         )
