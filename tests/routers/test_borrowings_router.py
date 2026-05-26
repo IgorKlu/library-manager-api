@@ -25,7 +25,7 @@ def test_borrow_book_borrows_book(
     assert borrowed_copy["book_id"] == book.id
     assert borrowed_copy["is_borrowed"] is True
 
-def test_borrow_book_raises_404_when_user_does_not_exist(
+def test_borrow_book_returns_404_when_user_does_not_exist(
         client: TestClient,
         book: BookModel,
 ):
@@ -40,7 +40,7 @@ def test_borrow_book_raises_404_when_user_does_not_exist(
     assert borrow_response.status_code == status.HTTP_404_NOT_FOUND
     assert borrow_response.json()["detail"] == "User not found"
 
-def test_borrow_book_raises_404_when_book_does_not_exist(
+def test_borrow_book_returns_404_when_book_does_not_exist(
         client: TestClient,
         user: UserModel,
 ):
@@ -55,7 +55,7 @@ def test_borrow_book_raises_404_when_book_does_not_exist(
     assert borrow_response.status_code == status.HTTP_404_NOT_FOUND
     assert borrow_response.json()["detail"] == "Book not found"
 
-def test_borrow_book_raises_409_when_copy_is_not_available(
+def test_borrow_book_returns_409_when_copy_is_not_available(
         client: TestClient,
         user: UserModel,
         book: BookModel,
@@ -103,7 +103,7 @@ def test_return_book_copy_returns_book_copy(
     assert return_data["book_id"] == borrowed_copy["book_id"]
     assert return_data["is_borrowed"] is False
 
-def test_return_book_raises_404_when_user_does_not_exists(
+def test_return_book_returns_404_when_user_does_not_exists(
         client: TestClient,
         book: BookModel,
         borrowed_copy: dict,
@@ -119,7 +119,7 @@ def test_return_book_raises_404_when_user_does_not_exists(
     assert return_response.status_code == status.HTTP_404_NOT_FOUND
     assert return_response.json()["detail"] == "User not found"
 
-def test_return_book_raises_404_when_book_copy_does_not_exists(
+def test_return_book_returns_404_when_book_copy_does_not_exists(
         client: TestClient,
         user: UserModel,
         borrowed_copy: dict,
@@ -135,7 +135,7 @@ def test_return_book_raises_404_when_book_copy_does_not_exists(
     assert return_response.status_code == status.HTTP_404_NOT_FOUND
     assert return_response.json()["detail"] == "Book copy not found"
 
-def test_return_book_raises_404_when_borrowing_does_not_exist(
+def test_return_book_returns_404_when_borrowing_does_not_exist(
         client: TestClient,
         user: UserModel,
         book: BookModel,

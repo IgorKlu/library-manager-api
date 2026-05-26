@@ -38,7 +38,7 @@ def test_create_user_creates_user(
     assert user_data["name"] == "Test"
     assert user_data["surname"] == "User"
 
-def test_create_user_raises_409_when_user_already_exists(
+def test_create_user_returns_409_when_user_already_exists(
         client: TestClient,
         user: UserModel,
 ):
@@ -67,7 +67,7 @@ def test_get_user_by_id_returns_user(
     assert user_data["name"] == user.name
     assert user_data["surname"] == user.surname
 
-def test_get_user_by_id_raises_404_when_user_does_not_exist(
+def test_get_user_by_id_returns_404_when_user_does_not_exist(
         client: TestClient,
 ):
     get_response = client.get("/users/invalid-user-id")
@@ -100,13 +100,13 @@ def test_list_user_active_borrowings_returns_borrowings_list(
         user: UserModel,
         borrowed_copy: dict,
 ):
-    get_response = client.get(
-        f"/users/{user.id}/borrowings/active"
-    )
+    get_response = client.get(f"/users/{user.id}/borrowings/active")
 
     assert get_response.status_code == status.HTTP_200_OK
 
     user_borrowings = get_response.json()
+
+    assert isinstance(user_borrowings, list)
 
     borrowing: dict | None = next(
         (
@@ -122,10 +122,44 @@ def test_list_user_active_borrowings_returns_borrowings_list(
     assert borrowing["book_copy_id"] == borrowed_copy["id"]
     assert borrowing["returned_at"] is None
 
-def test_list_user_active_borrowing_raises_404_when_user_does_not_exist(
+def test_list_user_active_borrowing_returns_404_when_user_does_not_exist(
         client: TestClient
 ):
     get_response = client.get("users/invalid-user-id/borrowings/active")
+
+    assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert get_response.json()["detail"] == "User not found"
+
+def test_list_user_borrowing_history_returns_borrowings_list(
+        client: TestClient,
+        user: UserModel,
+        borrowed_copy: dict,
+):
+    get_response = client.get(f"/users/{user.id}/borrowings/history")
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    user_borrowings = get_response.json()
+
+    assert isinstance(user_borrowings, list)
+
+    borrowing: dict | None = next(
+        (
+            borrowing_data
+            for borrowing_data in user_borrowings
+            if borrowing_data["book_copy_id"] == borrowed_copy["id"]
+        ),
+        None,
+    )
+
+    assert borrowing is not None
+    assert borrowing["user_id"] == user.id
+    assert borrowing["book_copy_id"] == borrowed_copy["id"]
+
+def test_list_user_borrowing_history_returns_404_when_user_does_not_exist(
+        client: TestClient
+):
+    get_response = client.get("/users/invalid-user-id/borrowings/history")
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
     assert get_response.json()["detail"] == "User not found"

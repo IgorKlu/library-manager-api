@@ -1,5 +1,5 @@
+
 from fastapi import APIRouter, HTTPException, Depends, status
-from psycopg.generators import fetch
 
 from app.services.library_db_service import LibraryDBService
 from app.schemas.user_schema import (
@@ -100,6 +100,26 @@ def list_user_active_borrowings(
 ):
     try:
         return service.list_user_active_borrowings(
+            db=db,
+            user_id=user_id,
+        )
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+@router.get(
+    "/{user_id}/borrowings/history",
+    response_model=list[BorrowingResponse],
+    status_code=status.HTTP_200_OK,
+)
+def list_user_borrowing_history(
+        user_id: str,
+        db: Session = Depends(get_db),
+):
+    try:
+        return service.list_user_borrowing_history(
             db=db,
             user_id=user_id,
         )
