@@ -122,3 +122,19 @@ def add_book_copy(book_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error)
         )
+
+@router.get(
+    "/search",
+    response_model=list[BookResponse],
+    status_code=status.HTTP_200_OK
+)
+def search_books(
+        title: str | None = None,
+        author: str | None = None,
+        db: Session = Depends(get_db),
+):
+    return service.search_books(
+        db=db,
+        title=title,
+        author=author
+    )

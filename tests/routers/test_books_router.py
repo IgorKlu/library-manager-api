@@ -138,3 +138,23 @@ def test_add_book_copy_raises_404_when_book_does_not_exist(
 
     assert post_response.status_code == status.HTTP_404_NOT_FOUND
     assert post_response.json()["detail"] == "Book not found"
+
+def search_books_returns_matching_books_list(
+        client: TestClient,
+        book: BookModel
+):
+    get_response = client.get(
+        "/books/search",
+        params={
+            "title": book.title,
+            "author": book.author
+        },
+    )
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    books = get_response.json()
+
+    book_ids = [book_data["id"] for book_data in books]
+
+    assert book.id in book_ids
