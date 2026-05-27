@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.services.library_db_service import LibraryDBService
 
 from app.db_models.book_model import BookModel
+from app.db_models.book_copy_model import BookCopyModel
 
 from app.schemas.book_schema import (
     BookResponse,
@@ -17,7 +18,7 @@ from app.exceptions import (
     BookAlreadyExistsError,
     BookNotFoundError,
     BookCopyNotFoundError,
-    UserNotFoundError,
+    BookIsBorrowedError,
 )
 
 router = APIRouter(
@@ -59,6 +60,22 @@ def create_book(
         )
 
 @router.get(
+    "/search",
+    response_model=list[BookResponse],
+    status_code=status.HTTP_200_OK
+)
+def search_books(
+        title: str | None = None,
+        author: str | None = None,
+        db: Session = Depends(get_db),
+):
+    return service.search_books(
+        db=db,
+        title=title,
+        author=author,
+    )
+
+@router.get(
     "/{book_id}",
     response_model=BookResponse,
     status_code=status.HTTP_200_OK,
@@ -84,7 +101,9 @@ def get_book_by_id(
     response_model=list[BookCopyResponse],
     status_code=status.HTTP_200_OK
 )
-def find_copies_for_book(book_id: str, db: Session = Depends(get_db)):
+def find_copies_for_book(
+        book_id: str, db: Session = Depends(get_db)
+) -> list[BookCopyModel]:
         return service.find_copies_for_book(
             db=db,
             book_id=book_id,
@@ -123,18 +142,48 @@ def add_book_copy(book_id: str, db: Session = Depends(get_db)):
             detail=str(error)
         )
 
+
 @router.get(
-    "/search",
-    response_model=list[BookResponse],
+    "/{book_id}/copies/available",
+    response_model=list[BookCopyResponse],
     status_code=status.HTTP_200_OK
 )
-def search_books(
-        title: str | None = None,
-        author: str | None = None,
+def list_available_copies_for_book(
+        book_id: str,
         db: Session = Depends(get_db),
 ):
-    return service.search_books(
-        db=db,
-        title=title,
-        author=author,
-    )
+    try:
+        return service.find_copies_for_book(
+            db=db,
+            book_id=book_id,
+        )
+    except BookNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+@router.delete(
+    "/{book_id}",
+    response_model=BookResponse,
+    status_code=status.HTTP_200_OK
+)
+def remove_book(
+        book_id: str,
+        db: Session = Depends(get_db),
+):
+    try:
+        return service.remove_book(
+            db=db,
+            book_id=book_id,
+        )
+    except BookNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+    except BookIsBorrowedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error)
+        )

@@ -3,6 +3,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from app.db_models.book_model import BookModel
+from app.db_models.book_copy_model import BookCopyModel
 
 def test_list_books_endpoint_returns_books(
         client: TestClient,
@@ -139,7 +140,7 @@ def test_add_book_copy_raises_404_when_book_does_not_exist(
     assert post_response.status_code == status.HTTP_404_NOT_FOUND
     assert post_response.json()["detail"] == "Book not found"
 
-def search_books_returns_matching_books_list(
+def test_search_books_returns_matching_books_list(
         client: TestClient,
         book: BookModel
 ):
@@ -158,3 +159,63 @@ def search_books_returns_matching_books_list(
     book_ids = [book_data["id"] for book_data in books]
 
     assert book.id in book_ids
+
+def test_list_available_copies_for_book_returns_copies_list(
+        client: TestClient,
+        book: BookModel
+):
+    get_response = client.get(f"/books/{book.id}/copies/available")
+
+    assert get_response.status_code == status.HTTP_200_OK
+
+    book_copies = get_response.json()
+
+    assert len(book_copies) == 1
+
+    book_copy: dict | None = next(
+        (
+            book_copy_data
+            for book_copy_data in book_copies
+            if book_copy_data["book_id"] == book.id
+        ),
+        None,
+    )
+
+    assert book_copy is not None
+    assert book_copy["book_id"] == book.id
+    assert book_copy["is_borrowed"] is False
+
+def test_list_available_copies_for_book_returns_404_when_book_does_not_exist(
+        client: TestClient
+):
+    get_response = client.get("/books/invalid-book-id/copies/available")
+
+    assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert get_response.json()["detail"] == "Book not found"
+
+def test_remove_books_removes_book(
+        client: TestClient,
+        book: BookModel,
+):
+    delete_response = client.delete(f"/books/{book.id}")
+
+    assert delete_response.status_code == status.HTTP_200_OK
+
+    deleted_book = delete_response.json()
+
+    assert deleted_book["id"] == book.id
+    assert deleted_book["title"] == book.title
+    assert deleted_book["author"] == book.author
+
+    get_response = client.get(f"/books/{book.id}")
+
+    assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert get_response.json()["detail"] == "Book not found"
+
+def test_remove_book_raises_404_when_book_does_not_exists(
+        client: TestClient
+):
+    delete_response = client.delete("books/invalid-book-id")
+
+    assert delete_response.status_code == status.HTTP_404_NOT_FOUND
+    assert delete_response.json()["detail"] == "Book not found"

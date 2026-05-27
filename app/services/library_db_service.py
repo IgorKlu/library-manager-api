@@ -255,7 +255,7 @@ class LibraryDBService:
             statement = statement.where(BookModel.title.ilike(f"%{title}%"))
 
         if author is not None:
-            statement = statement.where(BookModel.author.ilike(f"author%"))
+            statement = statement.where(BookModel.author.ilike(f"%{author}%"))
 
         return list(db.scalars(statement).all())
 
