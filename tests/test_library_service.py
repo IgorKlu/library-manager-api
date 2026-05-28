@@ -79,8 +79,3 @@ def test_remove_book_raises_error_when_copy_is_borrowed():
 
     assert library.find_book_by_id(book.id) is not None
     assert len(library.find_copies_for_book(book.id)) == 2
-
-
-
-
-

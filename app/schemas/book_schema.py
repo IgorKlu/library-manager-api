@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class BookCreate(BaseModel):
     title: str = Field(min_length=1, max_length=1000)
     author: str = Field(min_length=1, max_length=1000)
-    copies: int = Field(default=1, ge=1)
+    copies_count: int = Field(default=1, ge=1)
 
 
 class BookResponse(BaseModel):
@@ -12,12 +12,11 @@ class BookResponse(BaseModel):
     title: str
     author: str
 
+    model_config = ConfigDict(from_attributes=True)
 
 class BookCopyResponse(BaseModel):
     id: str
     book_id: str
     is_borrowed: bool
 
-
-class BorrowBookRequest(BaseModel):
-    book_id: str = Field(min_length=1)
+    model_config = ConfigDict(from_attributes=True)

@@ -33,3 +33,6 @@ class NoAvailableCopyError(Exception):
 
 class BookCopyNotFoundError(Exception):
     pass
+
+class BorrowingNotFoundError(Exception):
+    pass

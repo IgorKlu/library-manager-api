@@ -9,4 +9,3 @@ class User:
 
     def __repr__(self):
         return f"User(id={self.id!r}, name={self.name!r})"
-

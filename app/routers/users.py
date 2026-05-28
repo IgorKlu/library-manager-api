@@ -1,7 +1,16 @@
-from fastapi import APIRouter, HTTPException
 
-from app.state import library
-from app.schemas.user_schema import UserCreate, UserResponse, UserWithBorrowedCopiesResponse
+from fastapi import APIRouter, HTTPException, Depends, status
+
+from app.services.library_db_service import LibraryDBService
+from app.schemas.user_schema import (
+    UserCreate,
+    UserResponse,
+    UserWithBorrowedCopiesResponse
+)
+
+from app.database.connection import get_db
+
+from sqlalchemy.orm import Session
 
 from app.exceptions import (
     UserAlreadyExistsError,
@@ -14,66 +23,108 @@ from app.exceptions import (
     BookCopyNotFoundError,
 )
 
-from app.schemas.book_schema import BorrowBookRequest, BookResponse
-from app.schemas.book_schema import BookCopyResponse
+from app.db_models.user_model import UserModel
+from app.schemas.borrowing_schema import BorrowingResponse
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(
+    prefix="/users",
+    tags=["users"]
+)
 
-@router.get("/", response_model=list[UserResponse])
-def get_users():
-    return library.list_users()
+service = LibraryDBService()
 
-@router.post("/", response_model=UserResponse, status_code=201)
-def add_user(user_data: UserCreate):
+@router.get("/", response_model=list[UserResponse], status_code=status.HTTP_200_OK)
+def list_users(db: Session = Depends(get_db)) -> list[UserModel]:
+    return service.list_users(db)
+
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(user_data: UserCreate ,db: Session = Depends(get_db)) -> UserModel:
     try:
-        return library.create_user(user_data.name)
-    except UserAlreadyExistsError:
-        raise HTTPException(status_code=409, detail="User already exists")
+        return service.create_user(
+            db=db,
+            name=user_data.name,
+            surname=user_data.surname,
+        )
 
+    except UserAlreadyExistsError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        )
 
-@router.post("/{user_id}/borrowed-books", response_model=BookCopyResponse)
-def borrow_book_for_user(user_id: str, book_data: BorrowBookRequest):
+@router.get(
+    "/search",
+    response_model=list[UserResponse],
+    status_code=status.HTTP_200_OK,
+)
+def search_users(
+        name: str | None = None,
+        surname: str | None = None,
+        db: Session = Depends(get_db),
+):
+    return service.search_users(
+        db=db,
+        name=name,
+        surname=surname,
+    )
+
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK
+)
+def get_user_by_id(
+    user_id: str,
+    db: Session = Depends(get_db),
+) -> UserModel:
     try:
-        return library.borrow_book(user_id, book_data.book_id)
-    except BookNotFoundError:
-        raise HTTPException(status_code=404, detail="Book not found")
-    except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
-    except NoAvailableCopyError:
-        raise HTTPException(status_code=409, detail="Book is currently borrowed")
+        return service.get_user_by_id(
+            db=db,
+            user_id=user_id,
+        )
 
-@router.delete("/{user_id}/borrowed-books/{book_copy_id}", response_model=BookCopyResponse)
-def return_borrowed_book_copy(user_id: str, book_copy_id: str):
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
+
+@router.get(
+    "/{user_id}/borrowings/active",
+    response_model=list[BorrowingResponse],
+    status_code=status.HTTP_200_OK,
+)
+def list_user_active_borrowings(
+        user_id: str,
+        db: Session = Depends(get_db),
+):
     try:
-        return library.return_book(user_id, book_copy_id)
-    except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
-    except BookCopyNotFoundError:
-        raise HTTPException(status_code=404, detail="Book copy not found")
-    except BookNotBorrowedError:
-        raise HTTPException(status_code=409, detail="Book not borrowed")
-    except UserDoesNotHaveBookError:
-        raise HTTPException(status_code=409, detail="User does not have this book")
+        return service.list_user_active_borrowings(
+            db=db,
+            user_id=user_id,
+        )
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
 
-@router.get("/{user_id}/borrowed-copy-ids", response_model=list[str])
-def get_user_book_copies(user_id: str):
+@router.get(
+    "/{user_id}/borrowings/history",
+    response_model=list[BorrowingResponse],
+    status_code=status.HTTP_200_OK,
+)
+def list_user_borrowing_history(
+        user_id: str,
+        db: Session = Depends(get_db),
+):
     try:
-        return library.list_user_borrowed_copy_ids(user_id)
-    except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
-
-@router.get("/search", response_model=list[UserResponse])
-def find_user_by_name(name: str):
-    return library.find_users_by_name(name)
-
-@router.get("/{user_id}", response_model=UserWithBorrowedCopiesResponse)
-def get_user_by_id(user_id: str):
-    user = library.find_user_by_id(user_id)
-
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
-
-
-
+        return service.list_user_borrowing_history(
+            db=db,
+            user_id=user_id,
+        )
+    except UserNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error)
+        )
